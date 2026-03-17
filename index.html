@@ -5,25 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>갑자TV 오픈채팅방</title>
     <style>
-        /* 기본 카카오톡 테마 유지 */
-        body { font-family: 'Malgun Gothic', sans-serif; background-color: #bacee0; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+        /* 💡 모바일 최적화 (100dvh 사용, overflow hidden으로 전체 페이지 흔들림 방지) */
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #bacee0; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100dvh; box-sizing: border-box; overflow: hidden; }
         
         /* 헤더 및 시참 신청 버튼 디자인 */
         .header { background-color: #3b1e1e; color: #ffffff; padding: 10px 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10; display: flex; flex-direction: column; gap: 8px; }
         .header-top { display: flex; justify-content: space-between; align-items: center; }
         .title-text { font-size: 18px; font-weight: bold; }
+        
+        /* 💡 시참 신청 버튼 그림자 대폭 강화 */
         .apply-btn { 
             background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%); 
             color: #d81b60; font-weight: bold; text-decoration: none; padding: 6px 12px; 
-            border-radius: 20px; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
+            border-radius: 20px; font-size: 13px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); /* 그림자 진하고 넓게 */
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .apply-btn:active { transform: scale(0.95); }
+        .apply-btn:active { transform: scale(0.95); box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
 
         /* 현재 시간 시계 테이블 디자인 */
         .clock-table { width: 100%; background-color: rgba(255,255,255,0.1); border-radius: 8px; border-collapse: collapse; }
         .clock-table td { padding: 5px; text-align: center; font-size: 14px; letter-spacing: 0.5px; color: #ffffff; }
 
+        /* 채팅 컨테이너 (여기가 위아래로 늘어나면서 입력창을 바닥에 고정시킴) */
         .chat-container { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
         
         /* 내가 보낸 메시지 (오른쪽 노란색) */
@@ -32,21 +36,29 @@
         
         /* 남이 보낸 메시지 (왼쪽 흰색) */
         .msg-other { align-self: flex-start; display: flex; flex-direction: column; align-items: flex-start; max-width: 75%; }
-        /* 💡 닉네임 크기 2배(24px) 증가 및 텍스트 그림자로 가독성 향상 */
-        .msg-other .name { font-size: 14px; font-weight: bold; margin-bottom: 5px; margin-left: 5px; text-shadow: 1px 1px 2px rgba(255,255,255,0.8); }
+        .msg-other .name { font-size: 24px; font-weight: bold; margin-bottom: 5px; margin-left: 5px; text-shadow: 1px 1px 2px rgba(255,255,255,0.8); }
         .msg-other .bubble { background-color: #ffffff; color: #000; padding: 10px 15px; border-radius: 12px; border-top-left-radius: 3px; font-size: 15px; line-height: 1.4; box-shadow: 0 1px 2px rgba(0,0,0,0.1); word-wrap: break-word; }
 
-        .input-section { background-color: #ffffff; padding: 10px 15px; display: flex; flex-direction: column; gap: 8px; }
+        /* 하단 입력 영역 */
+        .input-section { background-color: #ffffff; padding: 10px 15px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 20; }
         
-        /* 이모티콘 바 디자인 */
-        .emoji-bar { display: flex; gap: 10px; padding-bottom: 5px; overflow-x: auto; white-space: nowrap; }
-        .emoji-bar::-webkit-scrollbar { display: none; }
-        .emoji-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 0; transition: transform 0.1s; }
+        /* 💡 이모티콘 드롭다운 디자인 */
+        .emoji-trigger { background: none; border: none; font-size: 22px; cursor: pointer; padding: 0; outline: none; }
+        .emoji-dropdown { 
+            display: none; position: absolute; bottom: 35px; left: 0;
+            background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px;
+            padding: 10px; box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            white-space: nowrap; max-width: 280px; overflow-x: auto; z-index: 100;
+        }
+        .emoji-dropdown.show { display: flex; gap: 10px; }
+        .emoji-btn { background: none; border: none; font-size: 22px; cursor: pointer; padding: 0; transition: transform 0.1s; }
         .emoji-btn:active { transform: scale(1.2); }
 
-        .nickname-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #666; }
-        .nickname-input { width: 120px; padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 20px; font-size: 14px; outline: none; background-color: #f5f5f5; }
+        .nickname-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #666; position: relative; }
+        /* 💡 닉네임 입력칸 넓이 확장 (170px) */
+        .nickname-input { width: 170px; padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 20px; font-size: 14px; outline: none; background-color: #f5f5f5; }
         .nickname-input:disabled { background-color: #e0e0e0; color: #888; border-color: #ccc; }
+        
         .msg-row { display: flex; gap: 8px; align-items: flex-end; }
         .msg-input { flex: 1; padding: 12px 15px; border: 1px solid #e0e0e0; border-radius: 20px; font-size: 15px; outline: none; }
         .send-btn { background-color: #fef01b; color: #3b1e1e; border: none; border-radius: 20px; padding: 0 18px; height: 44px; font-size: 15px; font-weight: bold; cursor: pointer; min-width: 60px; }
@@ -58,7 +70,7 @@
 <body>
     <div class="header">
         <div class="header-top">
-            <span class="title-text">갑자TV 라이브 소통방</span>
+            <span class="title-text">갑자TV 라이브 소통방(코드전달)</span>
             <a href="https://gapjatv.github.io/1/" target="_blank" class="apply-btn">🚀 시참 신청하기</a>
         </div>
         <table class="clock-table">
@@ -72,22 +84,24 @@
         </div>
 
     <div class="input-section">
-        <div class="emoji-bar">
-            <button class="emoji-btn" onclick="addEmoji('😀')">😀</button>
-            <button class="emoji-btn" onclick="addEmoji('😂')">😂</button>
-            <button class="emoji-btn" onclick="addEmoji('😍')">😍</button>
-            <button class="emoji-btn" onclick="addEmoji('🤔')">🤔</button>
-            <button class="emoji-btn" onclick="addEmoji('😥')">😥</button>
-            <button class="emoji-btn" onclick="addEmoji('👍')">👍</button>
-            <button class="emoji-btn" onclick="addEmoji('👏')">👏</button>
-            <button class="emoji-btn" onclick="addEmoji('🔥')">🔥</button>
-            <button class="emoji-btn" onclick="addEmoji('🎉')">🎉</button>
-            <button class="emoji-btn" onclick="addEmoji('💖')">💖</button>
-        </div>
-        
         <div class="nickname-row">
-            <input type="text" id="nickname" class="nickname-input" placeholder="닉네임 (12시간 고정)">
-            <span id="nickStatus"></span>
+            <div style="position: relative; display: flex; align-items: center; gap: 8px;">
+                <button class="emoji-trigger" onclick="toggleEmoji()" id="emojiTrigger">😀</button>
+                <div class="emoji-dropdown" id="emojiDropdown">
+                    <button class="emoji-btn" onclick="addEmoji('😀')">😀</button>
+                    <button class="emoji-btn" onclick="addEmoji('😂')">😂</button>
+                    <button class="emoji-btn" onclick="addEmoji('😍')">😍</button>
+                    <button class="emoji-btn" onclick="addEmoji('🤔')">🤔</button>
+                    <button class="emoji-btn" onclick="addEmoji('😥')">😥</button>
+                    <button class="emoji-btn" onclick="addEmoji('👍')">👍</button>
+                    <button class="emoji-btn" onclick="addEmoji('👏')">👏</button>
+                    <button class="emoji-btn" onclick="addEmoji('🔥')">🔥</button>
+                    <button class="emoji-btn" onclick="addEmoji('🎉')">🎉</button>
+                    <button class="emoji-btn" onclick="addEmoji('💖')">💖</button>
+                </div>
+                <input type="text" id="nickname" class="nickname-input" placeholder="닉네임 (12시간 변경 제한)">
+            </div>
+            <span id="nickStatus" style="white-space: nowrap;"></span>
         </div>
         <div class="msg-row">
             <input type="text" id="message" class="msg-input" placeholder="메시지를 입력하세요">
@@ -103,20 +117,22 @@
         const sendBtn = document.getElementById('sendBtn');
         const nickStatus = document.getElementById('nickStatus');
         const chatContainer = document.getElementById('chatContainer');
+        const emojiDropdown = document.getElementById('emojiDropdown');
 
         const LOCK_TIME = 12 * 60 * 60 * 1000; 
         let lastRenderedJSON = ""; 
 
-        // 💡 닉네임 글자를 기반으로 고유한 색상을 만들어주는 함수
+        // 💡 닉네임 글자를 기반으로 고유한 색상 생성
         function getColorByNickname(nickname) {
             let hash = 0;
             for (let i = 0; i < nickname.length; i++) {
                 hash = nickname.charCodeAt(i) + ((hash << 5) - hash);
             }
             let hue = Math.abs(hash % 360);
-            return `hsl(${hue}, 80%, 40%)`; // 밝은 배경에 잘 보이도록 진한 톤으로 설정
+            return `hsl(${hue}, 80%, 40%)`; 
         }
 
+        // 실시간 시계 업데이트
         function updateClock() {
             const now = new Date();
             const year = now.getFullYear();
@@ -133,22 +149,35 @@
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
             
-            // 💡 초(seconds) 색상을 흰색(white)으로 변경
             const clockHtml = `${year}년 ${month}월 ${date}일(<span style="color:${dayColor}; font-weight:bold;">${dayStr}</span>) ${hours}:${minutes} <span style="color:white; font-weight:bold;">${seconds}초</span>`;
             document.getElementById('clockDisplay').innerHTML = clockHtml;
         }
         setInterval(updateClock, 1000);
         updateClock();
 
+        // 💡 이모티콘 드롭다운 열기/닫기
+        function toggleEmoji() {
+            emojiDropdown.classList.toggle('show');
+        }
+
+        // 💡 이모티콘 추가 후 창 닫기
         function addEmoji(emoji) {
             messageInput.value += emoji;
             messageInput.focus();
+            emojiDropdown.classList.remove('show');
         }
 
+        // 바탕화면(채팅창) 클릭 시 이모티콘 창 자동으로 닫기
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('#emojiTrigger') && !event.target.closest('#emojiDropdown')) {
+                emojiDropdown.classList.remove('show');
+            }
+        });
+
         window.onload = () => {
-            // 💡 1. 차단된 유저인지 먼저 검사 (차단된 경우 화면을 아예 가려버림)
+            // 차단된 유저 접근 제한
             if (localStorage.getItem("gapja_banned") === "true") {
-                document.body.innerHTML = "<div style='display:flex; height:100vh; background-color:#1e1e1e; color:#ff4d4d; align-items:center; justify-content:center; font-size:20px; font-weight:bold;'>관리자에 의해 채팅방 접근이 차단되었습니다.</div>";
+                document.body.innerHTML = "<div style='display:flex; height:100dvh; background-color:#1e1e1e; color:#ff4d4d; align-items:center; justify-content:center; font-size:20px; font-weight:bold; text-align:center; padding:20px;'>관리자에 의해 채팅방 접근이 차단되었습니다.</div>";
                 return;
             }
 
@@ -171,8 +200,12 @@
             setInterval(loadChatHistory, 1000); 
         };
 
+        // 엔터키 전송 (모바일 키보드 완료 버튼 포함)
         messageInput.addEventListener("keydown", function(e) {
-            if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); sendMessage(); }
+            if (e.key === "Enter" && !e.isComposing) { 
+                e.preventDefault(); 
+                sendMessage(); 
+            }
         });
 
         function loadChatHistory() {
@@ -193,12 +226,13 @@
                             div.innerHTML = `<div class="bubble">${chat.message}</div>`;
                         } else {
                             div.className = "msg-other";
-                            // 💡 닉네임별로 다른 색상 적용
                             const nameColor = getColorByNickname(chat.nickname);
                             div.innerHTML = `<div class="name" style="color: ${nameColor};">${chat.nickname}</div><div class="bubble">${chat.message}</div>`;
                         }
                         chatContainer.appendChild(div);
                     });
+                    
+                    // 새 메시지가 오면 항상 맨 아래로 스크롤
                     chatContainer.scrollTop = chatContainer.scrollHeight;
                 })
                 .catch(err => console.log("채팅 대기 중..."));
@@ -228,18 +262,24 @@
             fetch(GAS_URL, { method: "POST", body: formData })
             .then(response => response.text())
             .then(text => {
-                // 💡 차단 처리 로직: BANNED 응답을 받으면 영구 차단 기록 후 새로고침
+                // 차단 로직
                 if (text === "BANNED") {
                     localStorage.setItem("gapja_banned", "true");
                     alert("관리자에 의해 채팅이 제한된 닉네임입니다. 채팅방에서 퇴장됩니다.");
-                    location.reload(); // 새로고침되어 접근 차단 화면으로 이동
+                    location.reload(); 
                 } else {
                     loadChatHistory(); 
                 }
             })
             .catch(e => console.log("CORS 통과"))
             .finally(() => {
-                setTimeout(() => { sendBtn.innerHTML = '전송'; sendBtn.disabled = false; messageInput.focus(); }, 500);
+                setTimeout(() => { 
+                    sendBtn.innerHTML = '전송'; 
+                    sendBtn.disabled = false; 
+                    // 모바일에서 전송 후 키보드가 불필요하게 다시 올라오는 것을 방지하려면 포커스를 안 주는 것이 좋습니다.
+                    // PC 사용자를 위해 포커스를 유지하되, 모바일에서는 터치해야 올라오도록 처리
+                    if(window.innerWidth > 768) messageInput.focus(); 
+                }, 500);
             });
         }
     </script>
